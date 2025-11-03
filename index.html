@@ -1,16 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, MapPin, Calendar, Users, LogOut, LogIn, Plus, X, Check, AlertCircle } from 'lucide-react';
 
-// ✅ Production-ready single-file component
-// - Fixes the broken JSX in AddEmployeeModal (dangling placeholder string)
-// - Adds a proper root return + default export
-// - Makes time math robust by storing ISO timestamps
-// - Avoids locale-dependent Date parsing
-// - Keeps your Tailwind/Lucide UI as-is
+// ✅ Production-ready single-file component (Login fixed)
+// - Employees seeded in initial state (no timing race)
+// - Login trims input and ignores email case
+// - All other UI/logic preserved
 
 const AttendanceSystem = () => {
   const [currentUser, setCurrentUser] = useState(null);
-  const [employees, setEmployees] = useState([]);
   const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [leaveRequests, setLeaveRequests] = useState([]);
   const [view, setView] = useState('login');
@@ -21,15 +18,12 @@ const AttendanceSystem = () => {
   // Offices master list
   const offices = ['Headquarters', 'Branch Office', 'Regional Office', 'Remote'];
 
-  // Demo users
-  useEffect(() => {
-    const demoEmployees = [
-      { id: 1, name: 'Admin User', email: 'admin@company.com', password: 'admin123', role: 'admin', office: 'Headquarters' },
-      { id: 2, name: 'John Doe', email: 'john@company.com', password: 'emp123', role: 'employee', office: 'Headquarters' },
-      { id: 3, name: 'Jane Smith', email: 'jane@company.com', password: 'emp123', role: 'employee', office: 'Branch Office' }
-    ];
-    setEmployees(demoEmployees);
-  }, []);
+  // 🔧 Seed demo users immediately (no useEffect)
+  const [employees, setEmployees] = useState(() => ([
+    { id: 1, name: 'Admin User', email: 'admin@company.com', password: 'admin123', role: 'admin', office: 'Headquarters' },
+    { id: 2, name: 'John Doe', email: 'john@company.com', password: 'emp123', role: 'employee', office: 'Headquarters' },
+    { id: 3, name: 'Jane Smith', email: 'jane@company.com', password: 'emp123', role: 'employee', office: 'Branch Office' }
+  ]));
 
   // Live clock
   useEffect(() => {
@@ -37,13 +31,17 @@ const AttendanceSystem = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Helpers for date keys (stable, locale-agnostic)
+  // Helpers for date/time
   const todayKey = () => new Date().toISOString().slice(0, 10); // YYYY-MM-DD
   const fmtDate = (d) => new Date(d).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   const fmtTime = (d) => new Date(d).toLocaleTimeString();
 
+  // 🔐 Robust login (trim + case-insensitive email)
   const handleLogin = (email, password) => {
-    const user = employees.find(e => e.email === email && e.password === password);
+    const e = (email || '').trim().toLowerCase();
+    const p = (password || '').trim();
+
+    const user = employees.find(u => (u.email || '').toLowerCase() === e && (u.password || '') === p);
     if (user) {
       setCurrentUser(user);
       setView(user.role === 'admin' ? 'admin' : 'employee');
@@ -561,7 +559,7 @@ const AttendanceSystem = () => {
       if (!formData.name || !formData.email || !formData.password) {
         alert('Please fill all required fields');
         return;
-        }
+      }
       onSubmit(formData);
     };
 
